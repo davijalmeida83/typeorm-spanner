@@ -19,3 +19,9 @@ export interface SpannerDatabase {
      */
     schemas: SpannerExtendSchemas | null;
 }
+
+
+export interface SpannerCredentials {
+  client_email?: string
+  private_key?: string
+}

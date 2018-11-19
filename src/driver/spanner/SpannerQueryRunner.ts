@@ -87,13 +87,15 @@ export class SpannerQueryRunner extends BaseQueryRunner implements QueryRunner {
     async startTransaction(isolationLevel?: IsolationLevel): Promise<void> {
         if (this.isTransactionActive)
             throw new TransactionAlreadyStartedError();
-
+            
         this.isTransactionActive = true;
         return this.connect().then(async (db) => {
-            this.tx = await this.databaseConnection.getTransaction({
+            const txResponse = await this.databaseConnection.getTransaction({
                 //readOnly: true,
                 strong: !!isolationLevel
             });
+
+            this.tx = txResponse[0]
         });
     }
 
@@ -104,7 +106,7 @@ export class SpannerQueryRunner extends BaseQueryRunner implements QueryRunner {
     async commitTransaction(): Promise<void> {
         if (!this.isTransactionActive)
             throw new TransactionNotStartedError();
-
+            
         await new Promise((res, rej) => this.tx.commit((err: Error) => {
             if (err) { rej(err); }
             else { 
@@ -137,6 +139,7 @@ export class SpannerQueryRunner extends BaseQueryRunner implements QueryRunner {
      * Executes a raw SQL query.
      */
     query(query: string, parameters?: any[]): Promise<any> {
+      console.log('QUERY', query, parameters)
         if (this.isReleased)
             throw new QueryRunnerAlreadyReleasedError();
 
@@ -152,10 +155,12 @@ export class SpannerQueryRunner extends BaseQueryRunner implements QueryRunner {
             try {
                 await this.connect();
                 const db = this.databaseConnection;
-                const [params, types] = this.generateQueryParameterAndTypes(parameters);
+                //const [params, types] = this.generateQueryParameterAndTypes(parameters);
                 this.driver.connection.logger.logQuery(query, parameters, this);
                 const queryStartTime = +new Date();
-                db.run({sql: query, params, types}, (err: any, result: any) => {
+                // db.run({sql: query, params, types}, (err: any, result: any) => {
+                //db.query(query, parameters, (err: any, result: any) => {
+                db.run({sql: query, parameters}, (err: any, result: any) => {
 
                     // log slow queries if maxQueryExecution time is set
                     const maxQueryExecutionTime = this.driver.connection.options.maxQueryExecutionTime;
@@ -624,7 +629,7 @@ export class SpannerQueryRunner extends BaseQueryRunner implements QueryRunner {
             oldColumn.asExpression !== newColumn.asExpression ||
             oldColumn.charset !== newColumn.charset || 
             oldColumn.collation !== newColumn.collation ||
-            oldColumn.comment !== newColumn.comment ||
+            //oldColumn.comment !== newColumn.comment ||
             // default is managed by schemas table. 
             oldColumn.enum !== newColumn.enum ||
             oldColumn.generatedType !== newColumn.generatedType ||
@@ -632,7 +637,7 @@ export class SpannerQueryRunner extends BaseQueryRunner implements QueryRunner {
             oldColumn.isArray !== newColumn.isArray
             // isGenerated is managed by schemas table
         ) {
-            throw new Error(`NYI: spanner: changeColumn: not supported change ${oldColumn} => ${newColumn}`);
+            throw new Error(`NYI: spanner: changeColumn: not supported change ${JSON.stringify(oldColumn)} => ${JSON.stringify(newColumn)}`);
         }
 
         // if actually changed, store SQLs

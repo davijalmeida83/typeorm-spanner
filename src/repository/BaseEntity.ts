@@ -10,7 +10,7 @@ import {SelectQueryBuilder} from "../query-builder/SelectQueryBuilder";
 import {RemoveOptions} from "./RemoveOptions";
 import {Repository} from "./Repository";
 import {SaveOptions} from "./SaveOptions";
-import Observable = require("zen-observable");
+import * as Observable from "zen-observable";
 
 /**
  * Base abstract entity for all entities, used in ActiveRecord patterns.

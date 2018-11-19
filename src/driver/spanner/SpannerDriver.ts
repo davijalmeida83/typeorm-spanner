@@ -233,7 +233,7 @@ export class SpannerDriver implements Driver {
      */
     setTable(table: Table) {
         if (!this.spanner) {
-            throw new Error('connect() driver first');
+            throw new Error('connect() driver first!');
         }
         this.spanner.database.tables[table.name] = table;
         // for (const tableName in this.spanner.database.tables) {
@@ -245,14 +245,14 @@ export class SpannerDriver implements Driver {
      * @param tableNames table names which need to load. 
      */
     loadTables(tableNames: string[]|Table|string): Promise<Table[]> {
-        if (!this.spanner) {
-            throw new Error('connect() driver first');
-        }
-        if (typeof tableNames === 'string') {
-            tableNames = [tableNames];
-        } else if (tableNames instanceof Table) {
-            tableNames = [tableNames.name];
-        }
+      if (!this.spanner) {
+        throw new Error('connect() driver first');
+      }
+      if (typeof tableNames === 'string') {
+        tableNames = [tableNames];
+      } else if (tableNames instanceof Table) {
+        tableNames = [tableNames.name];
+      }
         const database = this.spanner.database;
         return Promise.all(tableNames.map(async (tableName: string) => {
             let [dbname, name] = tableName.split(".");
@@ -287,12 +287,14 @@ export class SpannerDriver implements Driver {
             // create objects
             const client = new Spanner({
                 projectId: this.options.projectId,
+                credenitals: this.options.credentials,
             });
             const instance = client.instance(this.options.instanceId);
             const database = instance.database(this.options.database);
-            await database.get({autoCreate: true});
+            await database.get({ autoCreate: this.options.autoCreate });
             this.spanner = {
-                client, instance,
+                client,
+                instance,
                 database: {
                     handle: database,
                     tables: {},
@@ -390,6 +392,7 @@ export class SpannerDriver implements Driver {
      * Prepares given value to a value to be persisted, based on its column type and metadata.
      */
     preparePersistentValue(value: any, columnMetadata: ColumnMetadata): any {
+      console.log('preparePersistentValue', value, columnMetadata.type, typeof String)
         if (columnMetadata.transformer)
             value = columnMetadata.transformer.to(value);
 
@@ -407,11 +410,13 @@ export class SpannerDriver implements Driver {
         } else if (columnMetadata.type === "simple-json") {
             return DateUtils.simpleJsonToString(value);
         } */ else if (
-            columnMetadata.type == "int64" ||
-            columnMetadata.type == "float64" ||
-            columnMetadata.type == "bool" ||
-            columnMetadata.type == "string" ||
-            columnMetadata.type == "bytes") {
+            columnMetadata.type === "int64" ||
+            columnMetadata.type === "float64" ||
+            columnMetadata.type === "bool" ||
+            columnMetadata.type === "string" ||
+            (<any>columnMetadata.type).name === "String" ||
+            (<any>columnMetadata.type).name === "Number" ||
+            columnMetadata.type === "bytes") {
             return value;
         }
 
@@ -422,6 +427,7 @@ export class SpannerDriver implements Driver {
      * Prepares given value to a value to be persisted, based on its column type or metadata.
      */
     prepareHydratedValue(value: any, columnMetadata: ColumnMetadata): any {
+      console.log('prepareHydratedValue', value, columnMetadata)
         if (value === null || value === undefined)
             return value;
 
@@ -440,6 +446,7 @@ export class SpannerDriver implements Driver {
             columnMetadata.type == "float64" ||
             columnMetadata.type == "bool" ||
             columnMetadata.type == "string" ||
+            columnMetadata.type == "String" ||
             columnMetadata.type == "bytes") {
         } else {
             throw new DataTypeNotSupportedError(columnMetadata, columnMetadata.type, "spanner");
@@ -724,7 +731,7 @@ export class SpannerDriver implements Driver {
         const tm = typeName.match(/([^\(]+)\((\d+)\)/);
         if (tm) {
             return {
-                typeName: tm[1],
+                typeName: tm[1].toLowerCase(),
                 isArray: false,
                 length: Number(tm[2])
             };
@@ -732,13 +739,13 @@ export class SpannerDriver implements Driver {
         const am = typeName.match(/([^<]+)<(\w+)>/);
         if (am) {
             return {
-                typeName,
+                typeName: typeName.toLowerCase(),
                 isArray: true,
                 length: 1
             }
         }
         return {
-            typeName,
+            typeName: typeName.toLowerCase(),
             isArray: false,
             length: 1
         }
@@ -748,7 +755,6 @@ export class SpannerDriver implements Driver {
      * parse output of database.getSchema to generate Table object
      */
     protected async parseSchema(schemas: any): Promise<{[tableName: string]: Table}> {
-        console.log('parseSchema', schemas);
         const tableOptionsMap: {[tableName: string]: TableOptions} = {};
         for (const stmt of schemas[0]) {
             // console.log('stmt', stmt);
@@ -771,8 +777,8 @@ export class SpannerDriver implements Driver {
             // parse columns
             const columns: TableColumnOptions[] = [];
             for (const columnStmt of columnStmts.split(',')) {
-                // console.log('columnStmt', `[${columnStmt}]`);
-                const cm = columnStmt.match(/(\w+)\s+([\w\(\)]+)\s+([^\n]*)/);
+                // console.log('columnStmt', columnStmt);
+                const cm = columnStmt.match(/(\w+)\s+([\w\(\)]+)\s*([^\n]*)/);
                 if (!cm) {
                     throw new Error("invalid ddl column format:" + columnStmt);
                 }

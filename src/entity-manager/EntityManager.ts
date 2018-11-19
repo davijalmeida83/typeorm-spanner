@@ -34,7 +34,7 @@ import {Repository} from "../repository/Repository";
 import {RepositoryFactory} from "../repository/RepositoryFactory";
 import {SaveOptions} from "../repository/SaveOptions";
 import {TreeRepository} from "../repository/TreeRepository";
-import Observable = require("zen-observable");
+import * as Observable from "zen-observable";
 
 /**
  * Entity manager supposed to work with any entity, automatically find its repository and call its methods,

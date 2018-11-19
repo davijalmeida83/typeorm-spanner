@@ -457,12 +457,14 @@ export class Connection {
      * Finds exist entity metadata by the given entity class, target name or table name.
      */
     protected findMetadata(target: Function|EntitySchema<any>|string): EntityMetadata|undefined {
-        return this.entityMetadatas.find(metadata => {
+      return this.entityMetadatas.find(metadata => {
             if (metadata.target === target)
                 return true;
+
             if (target instanceof EntitySchema) {
                 return metadata.name === target.options.name;
             }
+
             if (typeof target === "string") {
                 if (target.indexOf(".") !== -1) {
                     return metadata.tablePath === target;

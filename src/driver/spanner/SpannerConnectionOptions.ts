@@ -1,4 +1,5 @@
 import {BaseConnectionOptions} from "../../connection/BaseConnectionOptions";
+import { SpannerCredentials } from "./SpannerRawTypes";
 
 /**
  * Spanner-specific connection options.
@@ -24,6 +25,16 @@ export interface SpannerConnectionOptions extends BaseConnectionOptions {
      * spanner database id (name)
      */
     readonly database: string;
+
+    /**
+     * Google service account credentials
+     */
+    readonly credentials?: SpannerCredentials;
+
+    /**
+     * Automatically create the database if it doesn't exist
+     */
+    readonly autoCreate: boolean;
 
     /**
      * extended schema infromation table name

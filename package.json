@@ -107,6 +107,7 @@
     "compile": "tsc",
     "package": "gulp package"
   },
+  "main": "build/package/index.js",
   "bin": {
     "typeorm": "./cli.js"
   },

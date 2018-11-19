@@ -12,7 +12,7 @@ import {SelectQueryBuilder} from "../query-builder/SelectQueryBuilder";
 import {QueryRunner} from "../query-runner/QueryRunner";
 import {RemoveOptions} from "./RemoveOptions";
 import {SaveOptions} from "./SaveOptions";
-import Observable = require("zen-observable");
+import * as Observable from "zen-observable";
 
 /**
  * Repository is supposed to work with your entity objects. Find entities, insert, update, delete, etc.

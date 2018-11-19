@@ -8,6 +8,7 @@ export class DataTypeNotSupportedError extends Error {
     constructor(column: ColumnMetadata, dataType: ColumnType, database?: DatabaseType) {
         super();
         Object.setPrototypeOf(this, DataTypeNotSupportedError.prototype);
+        console.log('TYPEOF DATATYPE:', typeof dataType)
         const type = typeof dataType === "string" ? dataType : (<any>dataType).name;
         this.message = `Data type "${type}" in "${column.entityMetadata.targetName}.${column.propertyName}" is not supported by "${database}" database.`;
     }
