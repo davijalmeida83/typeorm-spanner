@@ -243,10 +243,18 @@ export class InsertQueryBuilder<Entity> extends QueryBuilder<Entity> {
      */
     protected createInsertExpression() {
 
-        const tableName = this.getTableName(this.getMainTableName());
-        const valuesExpression = this.createValuesExpression(); // its important to get values before returning expression because oracle rely on native parameters and ordering of them is important
-        const returningExpression = this.createReturningExpression();
-        const columnsExpression = this.createColumnNamesExpression();
+      const tableName = this.getTableName(this.getMainTableName());
+      const valuesExpression = this.createValuesExpression(); // its important to get values before returning expression because oracle rely on native parameters and ordering of them is important
+      const returningExpression = this.createReturningExpression();
+      const columnsExpression = this.createColumnNamesExpression();
+      
+      console.log('================================================================================')
+      console.log('createInsertExpression')
+      console.log('tableName', tableName)
+      console.log('valuesExpression', valuesExpression)
+      console.log('returningExpression', returningExpression)
+      console.log('columnsExpression', columnsExpression)
+      console.log('================================================================================')
 
         // generate INSERT query
         let query = `INSERT INTO ${tableName}`;

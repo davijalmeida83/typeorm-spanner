@@ -139,7 +139,6 @@ export class SpannerQueryRunner extends BaseQueryRunner implements QueryRunner {
      * Executes a raw SQL query.
      */
     query(query: string, parameters?: any[]): Promise<any> {
-      console.log('QUERY', query, parameters)
         if (this.isReleased)
             throw new QueryRunnerAlreadyReleasedError();
 
@@ -156,11 +155,21 @@ export class SpannerQueryRunner extends BaseQueryRunner implements QueryRunner {
                 await this.connect();
                 const db = this.databaseConnection;
                 //const [params, types] = this.generateQueryParameterAndTypes(parameters);
+                
+                // const params = { id: 'b993f470-eb84-472b-a34e-96c0d564d563'}
+                // const types = {}
+
+                console.log('======================================================================')
+                console.log('SpannerQueryRunner.query')
+                console.log(query)
+                // query = 'SELECT `User`.`id` AS `User_id`, `User`.`firstName` AS `User_firstName`, `User`.`lastName` AS `User_lastName`, `User`.`age` AS `User_age` FROM `user` `User` WHERE (`User`.`id` IN (@id))'
+                // console.log(query)
+                console.log('======================================================================')
+
                 this.driver.connection.logger.logQuery(query, parameters, this);
                 const queryStartTime = +new Date();
-                // db.run({sql: query, params, types}, (err: any, result: any) => {
-                //db.query(query, parameters, (err: any, result: any) => {
-                db.run({sql: query, parameters}, (err: any, result: any) => {
+                db.run({sql: query, params: {}, types: {}}, (err: any, result: any) => {
+
 
                     // log slow queries if maxQueryExecution time is set
                     const maxQueryExecutionTime = this.driver.connection.options.maxQueryExecutionTime;
@@ -187,6 +196,10 @@ export class SpannerQueryRunner extends BaseQueryRunner implements QueryRunner {
      * execute query. call from XXXQueryBuilder
      */
     queryByBuilder<Entity>(qb: QueryBuilder<Entity>): Promise<any> {
+      console.log('======================================================================')
+      console.log('SpannerQueryRunner.queryByRunner')
+      console.log('qb.expressionMap.queryType', qb.expressionMap.queryType)
+      console.log('======================================================================')
         const fmaps: { [key:string]:(qb:QueryBuilder<Entity>) => Promise<any>} = {
             select: this.select,
             insert: this.insert, 
@@ -1346,6 +1359,13 @@ export class SpannerQueryRunner extends BaseQueryRunner implements QueryRunner {
      * connect() should be already called before this function invoked.
      */
     protected request(table: Table, method: string, ...args: any[]): Promise<any> {
+      console.log('======================================================================')
+      console.log('SpannerqueryRunner.request')
+      console.log('table', table.name)
+      console.log('method', method)
+      console.log('args', args)
+      console.log('tx?', !!this.tx)
+      console.log('======================================================================')
         if (this.tx) {
             return this.tx[method](table.name, ...args);
         } else {
@@ -1580,21 +1600,28 @@ export class SpannerQueryRunner extends BaseQueryRunner implements QueryRunner {
         });
     }
 
-    /**
-     * Returns current database.
-     */
-    protected generateQueryParameterAndTypes(parameters?: any[]): [{ [key: string]: any; }, { [key: string]: string }] {
-        const params: { [key: string]: any; } = {}
-        const types: { [key: string]: string } = {}
-        if (parameters) {
-            parameters.forEach((p) => {
-                params[p[0]] = p[1];
-                if (p[2]) {
-                    types[p[0]] = p[2];
-                }
-            })
-        }
-        return [params, types];
+    private generateQueryParameterAndTypes(parameters?: any[]): [{ [key: string]: any; }, { [key: string]: string }] {
+      console.log()
+      console.log('=================================================================================')
+      console.log('generateQueryParameterAndTypes')
+      console.log(parameters)
+      
+      const params: { [key: string]: any; } = {}
+      const types: { [key: string]: string } = {}
+      if (parameters) {
+        parameters.forEach((p) => {
+          params[p[0]] = p[1];
+          if (p[2]) {
+            types[p[0]] = p[2];
+          }
+        })
+      }
+
+      console.log('params', params)
+      console.log('types', types)
+      console.log('=================================================================================')
+
+      return [params, types];
     }
 
     /**

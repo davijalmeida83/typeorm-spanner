@@ -265,7 +265,7 @@ export class SpannerDriver implements Driver {
                 database.tables = await this.parseSchema(schemas);
             }
             return database.tables[name];
-        }));
+        })).then(tables => tables.filter(t => !!t));
     }
     getDatabases(): string[] {
         return Object.keys([this.options.database]);
@@ -348,28 +348,44 @@ export class SpannerDriver implements Driver {
      * and an array of parameter names to be passed to a query.
      */
     escapeQueryWithParameters(sql: string, parameters: ObjectLiteral, nativeParameters: ObjectLiteral): [string, any[]] {
-        const escapedParameters: any[] = Object.keys(nativeParameters).map(key => nativeParameters[key]);
-        if (!parameters || !Object.keys(parameters).length)
-            return [sql, escapedParameters];
-
-        const keys = Object.keys(parameters).map(parameter => "(:(\\.\\.\\.)?" + parameter + "\\b)").join("|");
-        sql = sql.replace(new RegExp(keys, "g"), (key: string) => {
-            let value: any;
-            if (key.substr(0, 4) === ":...") {
-                value = parameters[key.substr(4)];
-            } else {
-                value = parameters[key.substr(1)];
-            }
-
-            if (value instanceof Function) {
-                return value();
-
-            } else {
-                escapedParameters.push(value);
-                return "?";
-            }
-        }); // todo: make replace only in value statements, otherwise problems
+      const escapedParameters: any[] = Object.keys(nativeParameters).map(key => nativeParameters[key]);
+      if (!parameters || !Object.keys(parameters).length)
         return [sql, escapedParameters];
+
+      const keys = Object.keys(parameters).map(parameter => "(:(\\.\\.\\.)?" + parameter + "\\b)").join("|");
+
+      console.log()
+      console.log('=================================================================================')
+      console.log('SpannerDriver.escapeQueryWithParameters')
+      console.log('sql', sql)
+      console.log('parameters', parameters)
+      console.log('nativeParameters', nativeParameters)
+      console.log('keys', keys)
+      
+      const sqlReplaced = sql.replace(new RegExp(keys, "g"), (key: string) => {
+        console.log('REPLACING KEY', key)
+        let value: any;
+        if (key.substr(0, 4) === ":...") {
+          value = parameters[key.substr(4)];
+        } else {
+          value = parameters[key.substr(1)];
+        }
+        
+        if (value instanceof Function) {
+          return value();
+          
+        } else {
+          escapedParameters.push(value);
+          return value.map(v => `'${v}'`).join(', ')
+          // return "?";
+        }
+      }); // todo: make replace only in value statements, otherwise problems
+
+      console.log('escapedParameters', escapedParameters)
+      console.log('=================================================================================')
+      console.log()
+
+      return [sqlReplaced, escapedParameters];
     }
 
     /**
@@ -587,9 +603,14 @@ export class SpannerDriver implements Driver {
      * Creates generated map of values generated or returned by database after INSERT query.
      */
     createGeneratedMap(metadata: EntityMetadata, insertResult: any): ObjectLiteral|undefined {
-        if (insertResult) {
-            throw new Error(`NYI: spanner: createGeneratedMap`);
-        }
+        // if (insertResult) {
+        //   console.log('====================================================================================')
+        //   console.log('SpannerDriver.createGeneratedMap')
+        //   console.log('metadata', metadata)
+        //   console.log('insertResult', insertResult)
+        //   console.log('====================================================================================')
+        //     throw new Error(`NYI: spanner: createGeneratedMap`);
+        // }
         return undefined;
     }
 

@@ -124,6 +124,8 @@ export class RdbmsSchemaBuilder implements SchemaBuilder {
      * Order of operations matter here.
      */
     protected async executeSchemaSyncOperationsInProperOrder(): Promise<void> {
+      console.log('RdbmsSchemaBuilder.executeSchemaSyncOperationsInProperOrder()')
+      console.log('LOADED TABLES', this.queryRunner.loadedTables)
         await this.dropOldForeignKeys();
         await this.dropOldIndices();
         await this.dropOldChecks();
