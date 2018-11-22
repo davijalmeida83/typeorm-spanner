@@ -183,7 +183,7 @@ export class SpannerQueryRunner extends BaseQueryRunner implements QueryRunner {
                         return fail(new QueryFailedError(query, parameters, err));
                     }
 
-                    ok(result);
+                    ok(result.map((r: any) => r.toJSON()));
                 });
 
             } catch (err) {

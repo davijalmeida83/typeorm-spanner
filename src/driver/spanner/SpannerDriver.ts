@@ -376,7 +376,7 @@ export class SpannerDriver implements Driver {
           
         } else {
           escapedParameters.push(value);
-          return value.map(v => `'${v}'`).join(', ')
+          return value.map((v: string) => `'${v}'`).join(', ')
           // return "?";
         }
       }); // todo: make replace only in value statements, otherwise problems
@@ -463,6 +463,8 @@ export class SpannerDriver implements Driver {
             columnMetadata.type == "bool" ||
             columnMetadata.type == "string" ||
             columnMetadata.type == "String" ||
+            (typeof columnMetadata.type === "function" && columnMetadata.type.name === 'String') ||
+            (typeof columnMetadata.type === "function" && columnMetadata.type.name === 'Number') ||
             columnMetadata.type == "bytes") {
         } else {
             throw new DataTypeNotSupportedError(columnMetadata, columnMetadata.type, "spanner");
