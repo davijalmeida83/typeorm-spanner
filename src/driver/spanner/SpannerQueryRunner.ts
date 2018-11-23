@@ -90,9 +90,11 @@ export class SpannerQueryRunner extends BaseQueryRunner implements QueryRunner {
             
         this.isTransactionActive = true;
         return this.connect().then(async (db) => {
+          // TODO: Specify spanner transaction types
             const txResponse = await this.databaseConnection.getTransaction({
-                //readOnly: true,
-                strong: !!isolationLevel
+              readOnly: false
+                // //readOnly: true,
+                // strong: !!isolationLevel
             });
 
             this.tx = txResponse[0]
@@ -104,6 +106,7 @@ export class SpannerQueryRunner extends BaseQueryRunner implements QueryRunner {
      * Error will be thrown if transaction was not started.
      */
     async commitTransaction(): Promise<void> {
+      console.log('SpannerQueryRunner.commitTransaction')
         if (!this.isTransactionActive)
             throw new TransactionNotStartedError();
             
@@ -122,6 +125,7 @@ export class SpannerQueryRunner extends BaseQueryRunner implements QueryRunner {
      * Error will be thrown if transaction was not started.
      */
     async rollbackTransaction(): Promise<void> {
+      console.log('SpannerQueryRunner.rollbackTransaction')
         if (!this.isTransactionActive)
             throw new TransactionNotStartedError();
 
@@ -154,7 +158,8 @@ export class SpannerQueryRunner extends BaseQueryRunner implements QueryRunner {
             try {
                 await this.connect();
                 const db = this.databaseConnection;
-                //const [params, types] = this.generateQueryParameterAndTypes(parameters);
+                // const [params, types] = this.generateQueryParameterAndTypes(parameters);
+                const params = this.generateQueryParameters(parameters)
                 
                 // const params = { id: 'b993f470-eb84-472b-a34e-96c0d564d563'}
                 // const types = {}
@@ -168,7 +173,7 @@ export class SpannerQueryRunner extends BaseQueryRunner implements QueryRunner {
 
                 this.driver.connection.logger.logQuery(query, parameters, this);
                 const queryStartTime = +new Date();
-                db.run({sql: query, params: {}, types: {}}, (err: any, result: any) => {
+                db.run({sql: query, params, types: {}, json: true}, (err: any, result: any) => {
 
 
                     // log slow queries if maxQueryExecution time is set
@@ -183,7 +188,12 @@ export class SpannerQueryRunner extends BaseQueryRunner implements QueryRunner {
                         return fail(new QueryFailedError(query, parameters, err));
                     }
 
-                    ok(result.map((r: any) => r.toJSON()));
+                    console.log('========================================================================')
+                    console.log('SpannerQueryRunner.query RESULT')
+                    console.log(JSON.stringify(result, null, 2))
+                    console.log('========================================================================')
+
+                    ok(result);
                 });
 
             } catch (err) {
@@ -1363,7 +1373,7 @@ export class SpannerQueryRunner extends BaseQueryRunner implements QueryRunner {
       console.log('SpannerqueryRunner.request')
       console.log('table', table.name)
       console.log('method', method)
-      console.log('args', args)
+      console.log('args', JSON.stringify(args))
       console.log('tx?', !!this.tx)
       console.log('======================================================================')
         if (this.tx) {
@@ -1542,8 +1552,16 @@ export class SpannerQueryRunner extends BaseQueryRunner implements QueryRunner {
                 //if contained, we can omit SELECT statement. 
                 //currently, I pray spanner's optimizer is so clever that it infers values of keys from where statement.
                 const whex = qb.whereExpression;
-                const query = `SELECT ${table.primaryColumns.map((c) => c.name).join(',')} FROM ${qb.escapedMainTableName} ${whex}`;
-                const [keys,err] = await this.databaseConnection.run(query);
+                const sql = `SELECT ${table.primaryColumns.map((c) => c.name).join(',')} FROM ${qb.escapedMainTableName} ${whex}`;
+                const [query, parameters] = this.driver.escapeQueryWithParameters(sql, qb.getParameters(), {})
+                const maybeParams = this.generateQueryParameters(parameters)
+                const params = Object.keys(maybeParams).length ? maybeParams : undefined
+
+                console.log('CHECKING FOR ROWS TO DELETE')
+                console.log('SQL', query)
+                console.log("PARAMS", params)
+
+                const [keys,err] = await this.databaseConnection.run({sql: query, params, json: true});
                 if (err) {
                     this.driver.connection.logger.logQueryError(err, query, [], this);
                     fail(new QueryFailedError(query, [], err));
@@ -1553,7 +1571,22 @@ export class SpannerQueryRunner extends BaseQueryRunner implements QueryRunner {
                     ok(); //nothing to delete
                     return;
                 }
-                await this.request(table, 'deleteRows', keys);
+
+                /* Spanner expects keys differently depending on whether the table has a composite key or not:
+                 *  Simple key: [KEY_VALUE]
+                 *  Composite key: [[KEY_PART1, KEY_VALUE1], [KEY_PART2, KEY_VALUE2] ]
+                 */
+                const deleteKeys = keys.length > 1 
+                  ? keys.map((key: ObjectLiteral) => {
+                      const keyPart = Object.keys(key)[0] 
+                      return [keyPart, key[keyPart]]
+                    })
+                    : keys.map((key: ObjectLiteral) => {
+                      const keyPart = Object.keys(key)[0] 
+                      return key[keyPart]
+                    })
+
+                await this.request(table, 'deleteRows', deleteKeys);
                 ok();
             } catch (e) {
                 fail(e);
@@ -1624,6 +1657,22 @@ export class SpannerQueryRunner extends BaseQueryRunner implements QueryRunner {
       return [params, types];
     }
 
+    private generateQueryParameters(parameters?: ObjectLiteral[]): ObjectLiteral {
+      if (!parameters) {
+        return {}
+      }
+
+      // return parameters.reduce((params, param) => ({ ...params, ...param}), {})
+      const params: ObjectLiteral = {}
+      parameters.forEach(p => {
+        Object.keys(p).forEach(key => {
+          params[key] = p[key]
+        })
+      })
+
+      return params
+    }
+
     /**
      * Loads all tables (with given names) from the database and creates a Table from them.
      */
@@ -1641,8 +1690,10 @@ export class SpannerQueryRunner extends BaseQueryRunner implements QueryRunner {
      * Builds create table sql
      */
     protected createTableSql(table: Table, createForeignKeys?: boolean): string {
+      console.log('CREATE TABLE uniques', JSON.stringify(table.uniques, null, 2))
         const columnDefinitions = table.columns.map(column => this.buildCreateColumnSql(column, true)).join(", ");
-        let sql = `CREATE TABLE ${this.escapeTableName(table)} (${columnDefinitions}`;
+        const escapedTableName = this.escapeTableName(table)
+        let sql = `CREATE TABLE ${escapedTableName} (${columnDefinitions}`;
 
         // we create unique indexes instead of unique constraints, because MySql does not have unique constraints.
         // if we mark column as Unique, it means that we create UNIQUE INDEX.
@@ -1677,24 +1728,23 @@ export class SpannerQueryRunner extends BaseQueryRunner implements QueryRunner {
             });
         }
 
+        let indiciesSql: string = ''
         if (table.indices.length > 0) {
-            const indicesSql = table.indices.map(index => {
+          indiciesSql = table.indices.map(index => {
                 const columnNames = index.columnNames.map(columnName => `\`${columnName}\``).join(", ");
                 if (!index.name)
                     index.name = this.connection.namingStrategy.indexName(table.name, index.columnNames, index.where);
 
                 let indexType = "";
                 if (index.isUnique)
-                    indexType += "UNIQUE ";
+                    indexType += "UNIQUE";
                 if (index.isSpatial)
-                    indexType += "NULL_FILTERED ";
+                    indexType += "NULL_FILTERED";
                 if (index.isFulltext)
                     throw new Error(`NYI: spanner: index.isFulltext`); //indexType += "FULLTEXT ";
 
-                return `${indexType}INDEX \`${index.name}\` (${columnNames})`;
+                return `CREATE ${indexType} INDEX \`${index.name}\` ON ${escapedTableName} (${columnNames});`;
             }).join(", ");
-
-            sql += `, ${indicesSql}`;
         }
 
         sql += `)`;
@@ -1718,7 +1768,10 @@ export class SpannerQueryRunner extends BaseQueryRunner implements QueryRunner {
             sql += `, ${foreignKeysSql}`;
         }
 
-        return sql;
+        console.log('SQL', sql)
+        console.log('INDICIES SQL:', indiciesSql)
+
+        return `${sql}\n${indiciesSql}`;
     }
 
     /**
@@ -1773,7 +1826,7 @@ export class SpannerQueryRunner extends BaseQueryRunner implements QueryRunner {
     protected createForeignKeySql(table: Table, foreignKey: TableForeignKey): string {
         const referencedColumnNames = foreignKey.referencedColumnNames.map(column => `\`${column}\``).join(",");
         const fkName = foreignKey.name || `${foreignKey.referencedColumnNames}By${foreignKey.columnNames.join()}`;
-        let sql = `CREATE INDEX ${fkName}\(${foreignKey.columnNames.join(',')}\) ON ${this.escapeTableName(table.name)}\(${referencedColumnNames}\) INTERLEAVE IN ${this.escapeTableName(foreignKey.referencedTableName)}`;
+        let sql = `CREATE INDEX ${fkName} ON ${this.escapeTableName(table.name)}(${referencedColumnNames}), INTERLEAVE IN ${this.escapeTableName(foreignKey.referencedTableName)}`;
         if (foreignKey.onDelete)
             sql += ` ON DELETE ${foreignKey.onDelete}`;
         if (foreignKey.onUpdate)

@@ -261,8 +261,9 @@ export class SpannerDriver implements Driver {
             }
             if (Object.keys(database.tables).length === 0) {
                 const handle = database.handle;
-                const schemas = await handle.getSchema();
-                database.tables = await this.parseSchema(schemas);
+                const schemaResponse: string[][] = await handle.getSchema();
+                const ddlStatements = schemaResponse[0]
+                database.tables = await this.parseSchema(ddlStatements);
             }
             return database.tables[name];
         })).then(tables => tables.filter(t => !!t));
@@ -352,38 +353,44 @@ export class SpannerDriver implements Driver {
       if (!parameters || !Object.keys(parameters).length)
         return [sql, escapedParameters];
 
-      const keys = Object.keys(parameters).map(parameter => "(:(\\.\\.\\.)?" + parameter + "\\b)").join("|");
+      const keys = Object.keys(parameters).map(parameter => "(:\\.\\.\\." + parameter + "\\b)").join("|");
 
-      console.log()
-      console.log('=================================================================================')
-      console.log('SpannerDriver.escapeQueryWithParameters')
-      console.log('sql', sql)
-      console.log('parameters', parameters)
-      console.log('nativeParameters', nativeParameters)
-      console.log('keys', keys)
+      // console.log()
+      // console.log('=================================================================================')
+      // console.log('SpannerDriver.escapeQueryWithParameters')
+      // console.log('sql', sql)
+      // console.log('parameters', parameters)
+      // console.log('nativeParameters', nativeParameters)
+      // console.log('keys', keys)
       
       const sqlReplaced = sql.replace(new RegExp(keys, "g"), (key: string) => {
         console.log('REPLACING KEY', key)
-        let value: any;
-        if (key.substr(0, 4) === ":...") {
-          value = parameters[key.substr(4)];
-        } else {
-          value = parameters[key.substr(1)];
-        }
-        
+        const keyName = key.substr(4)
+        const value = parameters[keyName];
+        const isArray = value instanceof Array
+
         if (value instanceof Function) {
           return value();
           
         } else {
-          escapedParameters.push(value);
-          return value.map((v: string) => `'${v}'`).join(', ')
-          // return "?";
+
+          if (isArray) {
+            return (value as any[]).map((v, i) => {
+              const elementKeyName = `${keyName}${i}`
+              escapedParameters.push({ [elementKeyName]: v })
+              return `@${elementKeyName}`
+            }).join(', ')
+          } else {
+            escapedParameters.push({ [keyName]: value });
+            return `@${keyName}`;
+          }
+
         }
       }); // todo: make replace only in value statements, otherwise problems
 
-      console.log('escapedParameters', escapedParameters)
-      console.log('=================================================================================')
-      console.log()
+      // console.log('escapedParameters', escapedParameters)
+      // console.log('=================================================================================')
+      // console.log()
 
       return [sqlReplaced, escapedParameters];
     }
@@ -408,7 +415,6 @@ export class SpannerDriver implements Driver {
      * Prepares given value to a value to be persisted, based on its column type and metadata.
      */
     preparePersistentValue(value: any, columnMetadata: ColumnMetadata): any {
-      console.log('preparePersistentValue', value, columnMetadata.type, typeof String)
         if (columnMetadata.transformer)
             value = columnMetadata.transformer.to(value);
 
@@ -443,7 +449,6 @@ export class SpannerDriver implements Driver {
      * Prepares given value to a value to be persisted, based on its column type or metadata.
      */
     prepareHydratedValue(value: any, columnMetadata: ColumnMetadata): any {
-      console.log('prepareHydratedValue', value, columnMetadata)
         if (value === null || value === undefined)
             return value;
 
@@ -462,9 +467,8 @@ export class SpannerDriver implements Driver {
             columnMetadata.type == "float64" ||
             columnMetadata.type == "bool" ||
             columnMetadata.type == "string" ||
-            columnMetadata.type == "String" ||
-            (typeof columnMetadata.type === "function" && columnMetadata.type.name === 'String') ||
-            (typeof columnMetadata.type === "function" && columnMetadata.type.name === 'Number') ||
+            (<any>columnMetadata.type).name === "String" ||
+            (<any>columnMetadata.type).name === "Number" ||
             columnMetadata.type == "bytes") {
         } else {
             throw new DataTypeNotSupportedError(columnMetadata, columnMetadata.type, "spanner");
@@ -777,9 +781,13 @@ export class SpannerDriver implements Driver {
      /**
      * parse output of database.getSchema to generate Table object
      */
-    protected async parseSchema(schemas: any): Promise<{[tableName: string]: Table}> {
+    private async parseSchema(ddlStatements: string[]): Promise<{[tableName: string]: Table}> {
         const tableOptionsMap: {[tableName: string]: TableOptions} = {};
-        for (const stmt of schemas[0]) {
+        console.log('================================================================')
+        console.log('PARSE SCHEMA')
+        console.log('statements', ddlStatements)
+        console.log('================================================================')
+        for (const stmt of ddlStatements) {
             // console.log('stmt', stmt);
             // stmt =~ /CREATE ${tableName} (IF NOT EXISTS) (${columns}) ${interleaves}/
             /* example. 
@@ -836,13 +844,14 @@ export class SpannerDriver implements Driver {
                     // idxStmt =~ INTERLEAVE IN PARENT ${this.escapeTableName(fk.referencedTableName)}
                     const im = idxStmt.match(/INTERLEAVE\s+IN\s+PARENT\s+(\w+)\s*\((\w+)\)/);
                     if (im) {
-                        foreignKeys.push({
-                            name: tableName,
-                            columnNames: [`${m[2]}_id`],
-                            referencedTableName: m[2],
-                            referencedColumnNames: [] // set afterwards (primary key column of referencedTable)
-                        });
-                        return m[0];
+                        // foreignKeys.push({
+                        //     name: tableName,
+                        //     columnNames: [`${m[2]}_id`],
+                        //     referencedTableName: m[2],
+                        //     referencedColumnNames: [] // set afterwards (primary key column of referencedTable)
+                        // });
+                        // return m[0];
+                        throw new Error("NYI spanner: handle interleaved index")
                     }
                 } else if (idxStmt.indexOf("PRIMARY") == 0) {
                     // primary key

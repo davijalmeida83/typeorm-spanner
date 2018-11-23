@@ -248,13 +248,13 @@ export class InsertQueryBuilder<Entity> extends QueryBuilder<Entity> {
       const returningExpression = this.createReturningExpression();
       const columnsExpression = this.createColumnNamesExpression();
       
-      console.log('================================================================================')
-      console.log('createInsertExpression')
-      console.log('tableName', tableName)
-      console.log('valuesExpression', valuesExpression)
-      console.log('returningExpression', returningExpression)
-      console.log('columnsExpression', columnsExpression)
-      console.log('================================================================================')
+      // console.log('================================================================================')
+      // console.log('createInsertExpression')
+      // console.log('tableName', tableName)
+      // console.log('valuesExpression', valuesExpression)
+      // console.log('returningExpression', returningExpression)
+      // console.log('columnsExpression', columnsExpression)
+      // console.log('================================================================================')
 
         // generate INSERT query
         let query = `INSERT INTO ${tableName}`;
