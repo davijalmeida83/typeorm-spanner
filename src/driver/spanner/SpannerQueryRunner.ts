@@ -1290,13 +1290,15 @@ export class SpannerQueryRunner extends BaseQueryRunner implements QueryRunner {
             .select()
             .from(tableName, "")
             .getRawMany())
-            .map((o) => {
-                const v: { [k:string]:any } = {}
-                for (const c of o) {
-                    v[c["name"]] = c["value"];
-                }
-                return v;
-            });
+            // .map((o) => {
+            //   console.log('GETTING RAW OBJECT', o)
+            //     const v: { [k:string]:any } = {}
+            //     for (const c of o) {
+            //         console.log("C of O", c)
+            //         v[c["name"]] = c["value"];
+            //     }
+            //     return v;
+            // });
 
         const schemas: SpannerExtendSchemas = {};
         for (const rawObject of rawObjects) {
@@ -1913,13 +1915,16 @@ export class SpannerQueryRunner extends BaseQueryRunner implements QueryRunner {
         if (column.comment)
             throw new Error(`NYI: spanner: column.comment`); //c += ` COMMENT '${column.comment}'`;
 
-        // does not support any default value except SpannerColumnUpdateWithCommitTimestamp
-        if (column.default !== undefined && column.default !== null) {
-            if (column.default !== SpannerColumnUpdateWithCommitTimestamp) {
-                throw new Error(`NYI: spanner: column.default=${column.default}`); //c += ` DEFAULT ${column.default}`;
-            } else {
-                c += `OPTIONS (allow_commit_timestamp=true)`
-            }
+        // // does not support any default value except SpannerColumnUpdateWithCommitTimestamp
+        // if (column.default !== undefined && column.default !== null) {
+        //     if (column.default !== SpannerColumnUpdateWithCommitTimestamp) {
+        //         throw new Error(`NYI: spanner: column.default=${column.default}`); //c += ` DEFAULT ${column.default}`;
+        //     } else {
+        //         c += `OPTIONS (allow_commit_timestamp=true)`
+        //     }
+        // }
+        if (column.default === SpannerColumnUpdateWithCommitTimestamp) {
+            c += `OPTIONS (allow_commit_timestamp=true)`
         }
         
         // does not support on update

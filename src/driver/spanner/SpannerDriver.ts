@@ -144,11 +144,9 @@ export class SpannerDriver implements Driver {
      */
     mappedDataTypes: MappedColumnTypes = {
         createDate: "timestamp",
-        createDatePrecision: 20,
-        createDateDefault: "CURRENT_TIMESTAMP(6)",
+        createDateDefault: "CURRENT_TIMESTAMP()",
         updateDate: "timestamp",
-        updateDatePrecision: 20,
-        updateDateDefault: "CURRENT_TIMESTAMP(6)",
+        updateDateDefault: "CURRENT_TIMESTAMP()",
         version: "int64",
         treeLevel: "int64",
         migrationId: "int64",
@@ -168,7 +166,6 @@ export class SpannerDriver implements Driver {
      */
     dataTypeDefaults: DataTypeDefaults = {
         "string": { length: 255 },
-        "timestamp": { width: 20 },
         "date": { width: 10 },
         "bool": { width: 1 },
         "bytes": { length: 255 },
@@ -319,7 +316,7 @@ export class SpannerDriver implements Driver {
             const extendSchemas = await queryRunner.createAndLoadSchemaTableIfNotExists(
                 this.options.schemaTableName
             );
-            this.updateTableWithExtendSchema(this.spanner.database, extendSchemas);
+            this.spanner.database.schemas = this.updateTableWithExtendSchema(this.spanner.database, extendSchemas);
         })();
     }
 
@@ -353,7 +350,7 @@ export class SpannerDriver implements Driver {
       if (!parameters || !Object.keys(parameters).length)
         return [sql, escapedParameters];
 
-      const keys = Object.keys(parameters).map(parameter => "(:\\.\\.\\." + parameter + "\\b)").join("|");
+      const keys = Object.keys(parameters).map(parameter => "(:(\\.\\.\\.)?" + parameter + "\\b)").join("|");
 
       // console.log()
       // console.log('=================================================================================')
@@ -365,7 +362,7 @@ export class SpannerDriver implements Driver {
       
       const sqlReplaced = sql.replace(new RegExp(keys, "g"), (key: string) => {
         console.log('REPLACING KEY', key)
-        const keyName = key.substr(4)
+        const keyName = key.substr(0, 4) === ":..." ? key.substr(4) : key.substr(1)
         const value = parameters[keyName];
         const isArray = value instanceof Array
 
@@ -909,7 +906,6 @@ export class SpannerDriver implements Driver {
     }
 
     protected updateTableWithExtendSchema(db: SpannerDatabase, extendSchemas: SpannerExtendSchemas) {
-        db.schemas = extendSchemas;
         for (const tableName in db.tables) {
             const table = db.tables[tableName];
             const extendSchema = extendSchemas[tableName];
@@ -922,11 +918,14 @@ export class SpannerDriver implements Driver {
                         column.default = columnSchema.default;
                         column.generationStrategy = columnSchema.generatorStorategy;
                     } else {
-                        throw new Error(`extendSchema for column ${columnName} exists but table does not have it`);
-                    }
+                        console.log(`extendSchema for column ${columnName} exists but table does not have it`);
+                        // throw new Error(`extendSchema for column ${columnName} exists but table does not have it`);
+                      }
                 }
             }
             // console.log('table', tableName, table);
         }
+
+        return extendSchemas
     }
 }

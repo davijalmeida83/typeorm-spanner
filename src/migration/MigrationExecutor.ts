@@ -8,6 +8,7 @@ import {SqlServerDriver} from "../driver/sqlserver/SqlServerDriver";
 import {MssqlParameter} from "../driver/sqlserver/MssqlParameter";
 import {SqlServerConnectionOptions} from "../driver/sqlserver/SqlServerConnectionOptions";
 import {PostgresConnectionOptions} from "../driver/postgres/PostgresConnectionOptions";
+import { SpannerDriver } from "../driver/spanner/SpannerDriver";
 
 /**
  * Executes migrations: runs pending and reverts previously executed migrations.
@@ -109,6 +110,7 @@ export class MigrationExecutor {
             await PromiseUtils.runInSequence(pendingMigrations, migration => {
                 return migration.instance!.up(queryRunner)
                     .then(() => { // now when migration is executed we need to insert record about it into the database
+                        migration.timestamp = Date.now()
                         return this.insertExecutedMigration(queryRunner, migration);
                     })
                     .then(() => { // informative log about migration success
@@ -258,7 +260,9 @@ export class MigrationExecutor {
             .getRawMany();
 
         return migrationsRaw.map(migrationRaw => {
-            return new Migration(parseInt(migrationRaw["id"]), parseInt(migrationRaw["timestamp"]), migrationRaw["name"]);
+            const rawTimestamp: string = migrationRaw["timestamp"]
+            const timestamp: number = queryRunner.connection.driver instanceof SpannerDriver ? new Date(rawTimestamp).getTime() : parseInt(rawTimestamp)
+            return new Migration(parseInt(migrationRaw["id"]), timestamp, migrationRaw["name"]);
         });
     }
 
@@ -303,10 +307,14 @@ export class MigrationExecutor {
         if (this.connection.driver instanceof SqlServerDriver) {
             values["timestamp"] = new MssqlParameter(migration.timestamp, this.connection.driver.normalizeType({ type: this.connection.driver.mappedDataTypes.migrationTimestamp }) as any);
             values["name"] = new MssqlParameter(migration.name, this.connection.driver.normalizeType({ type: this.connection.driver.mappedDataTypes.migrationName }) as any);
+        } else if (this.connection.driver instanceof SpannerDriver) {
+          values["id"] = migration.timestamp;
+          values["timestamp"] = new Date(migration.timestamp).toISOString();
+          values["name"] = migration.name;
         } else {
-            values["timestamp"] = migration.timestamp;
-            values["name"] = migration.name;
-        }
+          values["timestamp"] = migration.timestamp;
+          values["name"] = migration.name;
+      }
 
         const qb = queryRunner.manager.createQueryBuilder();
         await qb.insert()
@@ -324,7 +332,11 @@ export class MigrationExecutor {
         if (this.connection.driver instanceof SqlServerDriver) {
             conditions["timestamp"] = new MssqlParameter(migration.timestamp, this.connection.driver.normalizeType({ type: this.connection.driver.mappedDataTypes.migrationTimestamp }) as any);
             conditions["name"] = new MssqlParameter(migration.name, this.connection.driver.normalizeType({ type: this.connection.driver.mappedDataTypes.migrationName }) as any);
-        } else {
+          } else if (this.connection.driver instanceof SpannerDriver) {
+            conditions["id"] = migration.timestamp;
+            conditions["timestamp"] = new Date(migration.timestamp).toISOString();
+            conditions["name"] = migration.name;
+          } else {
             conditions["timestamp"] = migration.timestamp;
             conditions["name"] = migration.name;
         }
