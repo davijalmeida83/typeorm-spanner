@@ -1,8 +1,8 @@
 {
-  "name": "typeorm",
-  "private": true,
+  "name": "typeorm-spanner",
+  "private": false,
   "version": "0.3.0-alpha.14",
-  "description": "Data-Mapper ORM for TypeScript, ES7, ES6, ES5. Supports MySQL, PostgreSQL, MariaDB, SQLite, MS SQL Server, Oracle, MongoDB databases.",
+  "description": "Data-Mapper ORM for TypeScript, ES7, ES6, ES5. Supports MySQL, PostgreSQL, MariaDB, SQLite, MS SQL Server, Oracle, MongoDB, Spanner databases.",
   "license": "MIT",
   "readmeFilename": "README.md",
   "author": {
@@ -11,10 +11,10 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/typeorm/typeorm.git"
+    "url": "https://github.com/Rocketmakers/typeorm.git"
   },
   "bugs": {
-    "url": "https://github.com/typeorm/typeorm/issues"
+    "url": "https://github.com/Rocketmakers/typeorm/issues"
   },
   "tags": [
     "orm",
@@ -26,6 +26,7 @@
     "postgresql-orm",
     "mariadb",
     "mariadb-orm",
+    "spanner",
     "sqlite",
     "sqlite-orm",
     "sql-server",
@@ -107,9 +108,8 @@
     "compile": "tsc",
     "package": "gulp package"
   },
-  "main": "build/package/index.js",
   "bin": {
-    "typeorm": "./build/package/cli.js"
+    "typeorm": "./cli.js"
   },
   "collective": {
     "type": "opencollective",
