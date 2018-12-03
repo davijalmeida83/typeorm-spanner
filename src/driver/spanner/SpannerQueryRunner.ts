@@ -106,7 +106,7 @@ export class SpannerQueryRunner extends BaseQueryRunner implements QueryRunner {
      * Error will be thrown if transaction was not started.
      */
     async commitTransaction(): Promise<void> {
-      console.log('SpannerQueryRunner.commitTransaction')
+      // console.log('SpannerQueryRunner.commitTransaction')
         if (!this.isTransactionActive)
             throw new TransactionNotStartedError();
             
@@ -125,7 +125,7 @@ export class SpannerQueryRunner extends BaseQueryRunner implements QueryRunner {
      * Error will be thrown if transaction was not started.
      */
     async rollbackTransaction(): Promise<void> {
-      console.log('SpannerQueryRunner.rollbackTransaction')
+      // console.log('SpannerQueryRunner.rollbackTransaction')
         if (!this.isTransactionActive)
             throw new TransactionNotStartedError();
 
@@ -164,12 +164,13 @@ export class SpannerQueryRunner extends BaseQueryRunner implements QueryRunner {
                 // const params = { id: 'b993f470-eb84-472b-a34e-96c0d564d563'}
                 // const types = {}
 
-                console.log('======================================================================')
-                console.log('SpannerQueryRunner.query')
-                console.log(query)
+                // console.log('======================================================================')
+                // console.log('SpannerQueryRunner.query')
+                // console.log(query)
+                // console.log(params)
                 // query = 'SELECT `User`.`id` AS `User_id`, `User`.`firstName` AS `User_firstName`, `User`.`lastName` AS `User_lastName`, `User`.`age` AS `User_age` FROM `user` `User` WHERE (`User`.`id` IN (@id))'
                 // console.log(query)
-                console.log('======================================================================')
+                // console.log('======================================================================')
 
                 this.driver.connection.logger.logQuery(query, parameters, this);
                 const queryStartTime = +new Date();
@@ -188,10 +189,10 @@ export class SpannerQueryRunner extends BaseQueryRunner implements QueryRunner {
                         return fail(new QueryFailedError(query, parameters, err));
                     }
 
-                    console.log('========================================================================')
-                    console.log('SpannerQueryRunner.query RESULT')
-                    console.log(JSON.stringify(result, null, 2))
-                    console.log('========================================================================')
+                    // console.log('========================================================================')
+                    // console.log('SpannerQueryRunner.query RESULT')
+                    // console.log(JSON.stringify(result, null, 2))
+                    // console.log('========================================================================')
 
                     ok(result);
                 });
@@ -206,10 +207,10 @@ export class SpannerQueryRunner extends BaseQueryRunner implements QueryRunner {
      * execute query. call from XXXQueryBuilder
      */
     queryByBuilder<Entity>(qb: QueryBuilder<Entity>): Promise<any> {
-      console.log('======================================================================')
-      console.log('SpannerQueryRunner.queryByRunner')
-      console.log('qb.expressionMap.queryType', qb.expressionMap.queryType)
-      console.log('======================================================================')
+      // console.log('======================================================================')
+      // console.log('SpannerQueryRunner.queryByRunner')
+      // console.log('qb.expressionMap.queryType', qb.expressionMap.queryType)
+      // console.log('======================================================================')
         const fmaps: { [key:string]:(qb:QueryBuilder<Entity>) => Promise<any>} = {
             select: this.select,
             insert: this.insert, 
@@ -346,7 +347,7 @@ export class SpannerQueryRunner extends BaseQueryRunner implements QueryRunner {
         const upQueries: string[] = [];
         const downQueries: string[] = [];
 
-        console.log('createTable name=', table.name);
+        // console.log('createTable name=', table.name);
         upQueries.push(this.createTableSql(table, createForeignKeys));
         downQueries.push(this.dropTableSql(table));
 
@@ -1371,13 +1372,13 @@ export class SpannerQueryRunner extends BaseQueryRunner implements QueryRunner {
      * connect() should be already called before this function invoked.
      */
     protected request(table: Table, method: string, ...args: any[]): Promise<any> {
-      console.log('======================================================================')
-      console.log('SpannerqueryRunner.request')
-      console.log('table', table.name)
-      console.log('method', method)
-      console.log('args', JSON.stringify(args))
-      console.log('tx?', !!this.tx)
-      console.log('======================================================================')
+      // console.log('======================================================================')
+      // console.log('SpannerqueryRunner.request')
+      // console.log('table', table.name)
+      // console.log('method', method)
+      // console.log('args', JSON.stringify(args))
+      // console.log('tx?', !!this.tx)
+      // console.log('======================================================================')
         if (this.tx) {
             return this.tx[method](table.name, ...args);
         } else {
@@ -1559,9 +1560,9 @@ export class SpannerQueryRunner extends BaseQueryRunner implements QueryRunner {
                 const maybeParams = this.generateQueryParameters(parameters)
                 const params = Object.keys(maybeParams).length ? maybeParams : undefined
 
-                console.log('CHECKING FOR ROWS TO DELETE')
-                console.log('SQL', query)
-                console.log("PARAMS", params)
+                // console.log('CHECKING FOR ROWS TO DELETE')
+                // console.log('SQL', query)
+                // console.log("PARAMS", params)
 
                 const [keys,err] = await this.databaseConnection.run({sql: query, params, json: true});
                 if (err) {
@@ -1636,10 +1637,10 @@ export class SpannerQueryRunner extends BaseQueryRunner implements QueryRunner {
     }
 
     private generateQueryParameterAndTypes(parameters?: any[]): [{ [key: string]: any; }, { [key: string]: string }] {
-      console.log()
-      console.log('=================================================================================')
-      console.log('generateQueryParameterAndTypes')
-      console.log(parameters)
+      // console.log()
+      // console.log('=================================================================================')
+      // console.log('generateQueryParameterAndTypes')
+      // console.log(parameters)
       
       const params: { [key: string]: any; } = {}
       const types: { [key: string]: string } = {}
@@ -1652,9 +1653,9 @@ export class SpannerQueryRunner extends BaseQueryRunner implements QueryRunner {
         })
       }
 
-      console.log('params', params)
-      console.log('types', types)
-      console.log('=================================================================================')
+      // console.log('params', params)
+      // console.log('types', types)
+      // console.log('=================================================================================')
 
       return [params, types];
     }
@@ -1692,7 +1693,7 @@ export class SpannerQueryRunner extends BaseQueryRunner implements QueryRunner {
      * Builds create table sql
      */
     protected createTableSql(table: Table, createForeignKeys?: boolean): string {
-      console.log('CREATE TABLE uniques', JSON.stringify(table.uniques, null, 2))
+      // console.log('CREATE TABLE uniques', JSON.stringify(table.uniques, null, 2))
         const columnDefinitions = table.columns.map(column => this.buildCreateColumnSql(column, true)).join(", ");
         const escapedTableName = this.escapeTableName(table)
         let sql = `CREATE TABLE ${escapedTableName} (${columnDefinitions}`;
@@ -1770,8 +1771,8 @@ export class SpannerQueryRunner extends BaseQueryRunner implements QueryRunner {
             sql += `, ${foreignKeysSql}`;
         }
 
-        console.log('SQL', sql)
-        console.log('INDICIES SQL:', indiciesSql)
+        // console.log('SQL', sql)
+        // console.log('INDICIES SQL:', indiciesSql)
 
         return `${sql}\n${indiciesSql}`;
     }

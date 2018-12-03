@@ -1996,7 +1996,7 @@ export class SelectQueryBuilder<Entity> extends QueryBuilder<Entity> implements 
                 .orderBy()
                 .groupBy();
 
-                console.log('Getting raw results')
+                // console.log('Getting raw results')
             rawResults = await new SelectQueryBuilder(this.connection, queryRunner)
                 .select(`DISTINCT ${querySelects.join(", ")}`)
                 .addSelect(selects)
@@ -2008,7 +2008,7 @@ export class SelectQueryBuilder<Entity> extends QueryBuilder<Entity> implements 
                 .setParameters(this.getParameters())
                 .setNativeParameters(this.expressionMap.nativeParameters)
                 .getRawMany();
-                console.log('Got raw results', rawResults)
+                // console.log('Got raw results', rawResults)
 
             if (rawResults.length > 0) {
                 let condition = "";

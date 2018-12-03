@@ -346,7 +346,7 @@ export class SpannerDriver implements Driver {
      * and an array of parameter names to be passed to a query.
      */
     escapeQueryWithParameters(sql: string, parameters: ObjectLiteral, nativeParameters: ObjectLiteral): [string, any[]] {
-      const escapedParameters: any[] = Object.keys(nativeParameters).map(key => nativeParameters[key]);
+      const escapedParameters: any[] = Object.keys(nativeParameters).length > 0 ? [nativeParameters] : []
       if (!parameters || !Object.keys(parameters).length)
         return [sql, escapedParameters];
 
@@ -361,7 +361,7 @@ export class SpannerDriver implements Driver {
       // console.log('keys', keys)
       
       const sqlReplaced = sql.replace(new RegExp(keys, "g"), (key: string) => {
-        console.log('REPLACING KEY', key)
+        // console.log('REPLACING KEY', key)
         const keyName = key.substr(0, 4) === ":..." ? key.substr(4) : key.substr(1)
         const value = parameters[keyName];
         const isArray = value instanceof Array
@@ -606,15 +606,17 @@ export class SpannerDriver implements Driver {
      * Creates generated map of values generated or returned by database after INSERT query.
      */
     createGeneratedMap(metadata: EntityMetadata, insertResult: any): ObjectLiteral|undefined {
-        // if (insertResult) {
-        //   console.log('====================================================================================')
-        //   console.log('SpannerDriver.createGeneratedMap')
-        //   console.log('metadata', metadata)
-        //   console.log('insertResult', insertResult)
-        //   console.log('====================================================================================')
-        //     throw new Error(`NYI: spanner: createGeneratedMap`);
-        // }
-        return undefined;
+      return {};
+    //   const generatedMap = metadata.columns.reduce((map, column) => {
+    //     let value: any;
+    //     if (column.generationStrategy === "increment" && insertResult.insertId) {
+    //         value = insertResult.insertId;
+    //     }
+
+    //     return OrmUtils.mergeDeep(map, column.createValueMap(value));
+    // }, {} as ObjectLiteral);
+
+    // return Object.keys(generatedMap).length > 0 ? generatedMap : undefined;
     }
 
     /**
@@ -780,10 +782,10 @@ export class SpannerDriver implements Driver {
      */
     private async parseSchema(ddlStatements: string[]): Promise<{[tableName: string]: Table}> {
         const tableOptionsMap: {[tableName: string]: TableOptions} = {};
-        console.log('================================================================')
-        console.log('PARSE SCHEMA')
-        console.log('statements', ddlStatements)
-        console.log('================================================================')
+        // console.log('================================================================')
+        // console.log('PARSE SCHEMA')
+        // console.log('statements', ddlStatements)
+        // console.log('================================================================')
         for (const stmt of ddlStatements) {
             // console.log('stmt', stmt);
             // stmt =~ /CREATE ${tableName} (IF NOT EXISTS) (${columns}) ${interleaves}/
