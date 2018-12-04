@@ -110,7 +110,6 @@ export class MigrationExecutor {
             await PromiseUtils.runInSequence(pendingMigrations, migration => {
                 return migration.instance!.up(queryRunner)
                     .then(() => { // now when migration is executed we need to insert record about it into the database
-                        migration.timestamp = Date.now()
                         return this.insertExecutedMigration(queryRunner, migration);
                     })
                     .then(() => { // informative log about migration success
