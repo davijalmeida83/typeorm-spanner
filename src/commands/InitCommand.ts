@@ -204,7 +204,7 @@ temp/`;
      * Gets contents of the user entity.
      */
     protected static getUserEntityTemplate(database: string): string {
-        return `import {Entity, ${ database === "mongodb" ? "ObjectIdColumn, ObjectID" : "PrimaryGeneratedColumn" }, Column} from "typeorm";
+        return `import {Entity, ${ database === "mongodb" ? "ObjectIdColumn, ObjectID" : "PrimaryGeneratedColumn" }, Column} from "typeorm-spanner";
 
 @Entity()
 export class User {
@@ -258,7 +258,7 @@ export const Routes = [{
      * Gets contents of the user controller file (used when express is enabled).
      */
     protected static getControllerTemplate(): string {
-        return `import {getRepository} from "typeorm";
+        return `import {getRepository} from "typeorm-spanner";
 import {NextFunction, Request, Response} from "express";
 import {User} from "../entity/User";
 
@@ -292,7 +292,7 @@ export class UserController {
     protected static getAppIndexTemplate(express: boolean): string {
         if (express) {
             return `import "reflect-metadata";
-import {createConnection} from "typeorm";
+import {createConnection} from "typeorm-spanner";
 import * as express from "express";
 import * as bodyParser from "body-parser";
 import {Request, Response} from "express";
@@ -343,7 +343,7 @@ createConnection().then(async connection => {
 
         } else {
             return `import "reflect-metadata";
-import {createConnection} from "typeorm";
+import {createConnection} from "typeorm-spanner";
 import {User} from "./entity/User";
 
 createConnection().then(async connection => {

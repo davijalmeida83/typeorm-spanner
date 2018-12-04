@@ -70,7 +70,7 @@ export class EntityCreateCommand {
      * Gets contents of the entity file.
      */
     protected static getTemplate(name: string): string {
-        return `import {Entity} from "typeorm";
+        return `import {Entity} from "typeorm-spanner";
 
 @Entity()
 export class ${name} {

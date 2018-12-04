@@ -69,7 +69,7 @@ export class MigrationCreateCommand {
      * Gets contents of the migration file.
      */
     protected static getTemplate(name: string, timestamp: number): string {
-        return `import {MigrationInterface, QueryRunner} from "typeorm";
+        return `import {MigrationInterface, QueryRunner} from "typeorm-spanner";
 
 export class ${camelCase(name, true)}${timestamp} implements MigrationInterface {
 

@@ -67,7 +67,7 @@ export class SubscriberCreateCommand {
      * Gets contents of the entity file.
      */
     protected static getTemplate(name: string): string {
-        return `import {EventSubscriber, EntitySubscriberInterface} from "typeorm";
+        return `import {EventSubscriber, EntitySubscriberInterface} from "typeorm-spanner";
 
 @EventSubscriber()
 export class ${name} implements EntitySubscriberInterface<any> {
