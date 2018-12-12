@@ -799,7 +799,9 @@ export class SpannerDriver implements Driver {
             */
             const m = stmt.match(/\s*CREATE\s+TABLE\s+(\w+)\s?[^\(]*\(([\s\S]*?),(?=\s*\))\s*\)([\s\S]*)/);
             if (!m) {
-                throw new Error("invalid ddl format:" + stmt);
+                // Just ignore indicies instead of throwing - we want to support migrations
+                continue
+                // throw new Error("invalid ddl format:" + stmt);
             }
             const tableName: string = m[1]; 
             const columnStmts: string = m[2];
