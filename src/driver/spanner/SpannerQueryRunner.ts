@@ -148,8 +148,16 @@ export class SpannerQueryRunner extends BaseQueryRunner implements QueryRunner {
 
         // handle administrative queries.
         let m: RegExpMatchArray | null;
-        if ((m = query.match(/^\s*(CREATE|DROP|ALTER)\s+(.+)/))) {
-            return this.handleAdministrativeQuery(m[1], m);
+        
+        if ((m = query.match(/^\s*(CREATE|DROP|ALTER)\s+(.+)/s))) {
+            const statements = query
+              .split(';')
+              .map(statement => statement.trim())
+              .filter(statement => !!statement)
+
+            this.driver.connection.logger.logQuery(query, parameters, this);
+
+            return this.simpleHandleAdministrativeQuery(statements)
         } else if (!query.match(/^\s*SELECT\s+(.+)/)) {
             throw new Error(`the query cannot handle by this function: ${query}`);
         }
@@ -1634,6 +1642,12 @@ export class SpannerQueryRunner extends BaseQueryRunner implements QueryRunner {
                 return data[0].promise();
             });
         });
+    }
+
+    protected async simpleHandleAdministrativeQuery(statements: string[]): Promise<any>{
+        const conn = await this.connect()
+        const [data]: any[] = await conn.updateSchema(statements)
+        return data.promise()
     }
 
     private generateQueryParameterAndTypes(parameters?: any[]): [{ [key: string]: any; }, { [key: string]: string }] {
