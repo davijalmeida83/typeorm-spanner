@@ -286,6 +286,7 @@ export class SpannerDriver implements Driver {
             const client = new Spanner({
                 projectId: this.options.projectId,
                 credenitals: this.options.credentials,
+                keyFilename: this.options.keyFilename,
             });
             const instance = client.instance(this.options.instanceId);
             const database = instance.database(this.options.database);

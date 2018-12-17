@@ -32,6 +32,11 @@ export interface SpannerConnectionOptions extends BaseConnectionOptions {
     readonly credentials?: SpannerCredentials;
 
     /**
+     * Absolute path to a file containing Google service account credentials
+     */
+    readonly keyFilename?: string;
+
+    /**
      * Automatically create the database if it doesn't exist
      */
     readonly autoCreate: boolean;
