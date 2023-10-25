@@ -1398,7 +1398,10 @@ export class SpannerQueryRunner extends BaseQueryRunner implements QueryRunner {
      * Handle select query
      */
     protected select<Entity>(qb: QueryBuilder<Entity>): Promise<any> {
-        console.log('select', qb.getSql(), this.databaseConnection);
+        if(qb.connection.options.logging){
+            if (qb.connection.options.logging !== false)
+                console.log('select', qb.getSql(), this.databaseConnection);
+        }
         if (!this.tx) {
             const [query, params] = qb.getQueryAndParameters();
             return this.databaseConnection.run({sql: query, params});
@@ -1444,7 +1447,10 @@ export class SpannerQueryRunner extends BaseQueryRunner implements QueryRunner {
      * Handle insert query
      */
     protected insert<Entity>(qb: QueryBuilder<Entity>): Promise<any> {
-        console.log('insert', qb.getSql());
+        if(qb.connection.options.logging){
+            if (qb.connection.options.logging !== false)
+                console.log('insert', qb.getSql());
+        } 
         return new Promise(async (ok, fail) => {
             try {
                 const table = await this.getTable(qb.mainTableName);
@@ -1464,7 +1470,10 @@ export class SpannerQueryRunner extends BaseQueryRunner implements QueryRunner {
      * Handle update query
      */
     protected update<Entity>(qb: QueryBuilder<Entity>): Promise<any> {
-        console.log('update', qb.getSql());
+        if(qb.connection.options.logging){
+            if (qb.connection.options.logging !== false)
+                console.log('update', qb.getSql());
+        } 
         return new Promise(async (ok, fail) => {
             try {
                 let vs = qb.expressionMap.valuesSet instanceof Array ? qb.expressionMap.valuesSet : [qb.expressionMap.valuesSet];
@@ -1510,7 +1519,10 @@ export class SpannerQueryRunner extends BaseQueryRunner implements QueryRunner {
      * Handle upsert query
      */
     protected upsert<Entity>(qb: QueryBuilder<Entity>): Promise<any> {
-        console.log('upsert', qb.getSql());
+        if(qb.connection.options.logging){
+            if (qb.connection.options.logging !== false)
+                console.log('upsert', qb.getSql());
+        } 
         return new Promise(async (ok, fail) => {
             try {
                 let vs = qb.expressionMap.valuesSet instanceof Array ? qb.expressionMap.valuesSet : [qb.expressionMap.valuesSet];
@@ -1551,7 +1563,10 @@ export class SpannerQueryRunner extends BaseQueryRunner implements QueryRunner {
      * Handle delete query
      */
     protected delete<Entity>(qb: QueryBuilder<Entity>): Promise<any> {
-        console.log('delete', qb.getSql());
+        if(qb.connection.options.logging){
+            if (qb.connection.options.logging !== false)
+                console.log('delete', qb.getSql());
+        } 
         return new Promise(async (ok, fail) => {
             try {
                 const table = await this.getTable(qb.mainTableName);
